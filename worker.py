@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-
-import argparser
+import os
+import argparse
 import subprocess
 import tempfile
-import yaml
+import json
 import shutil
 from kafka import KafkaConsumer
 
@@ -19,19 +19,23 @@ class RunnerService(Service):
         run_main(self.args)
 
 def run_main(args):
+    if not os.path.exists(args.workdir):
+        os.mkdir(args.workdir)
     consumer = KafkaConsumer('cwl-jobs', 
         bootstrap_servers=args.server,
+                             auto_offset_reset="earliest",
         consumer_timeout_ms=3000,
         group_id=args.group)
     for msg in consumer:
-        data = json.loads(msg)
+        print msg
+        data = json.loads(msg.value)
         workflow = data['workflow']
         inputs = data['inputs']
         output = data['output']
         
         tdir = tempfile.mkdtemp(dir=args.workdir, prefix="cwl_workqueue")
         with open(os.path.join(tdir, "workflow.cwl"), "w") as handle:
-            handle.write(yaml.dump(workflow))
+            handle.write(json.dumps(workflow))
         
         with open(os.path.join(tdir, "inputs.json"), "w") as handle:
             handle.write(json.dumps(inputs))
@@ -45,7 +49,7 @@ def run_main(args):
         shutil.rmtree(tdir)
 
 if __name__ == "__main__":
-    parser = argparser.ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("server")
     parser.add_argument("--workdir", default="cwl-workers")
     parser.add_argument("--group", default="cwl-workers")
