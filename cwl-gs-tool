@@ -1,0 +1,101 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import argparse
+import json
+from glob import glob
+import subprocess
+import tempfile
+
+def cache_inputs(inputs, cache_dir):
+    if isinstance(inputs, dict):
+        if "class" in inputs and inputs["class"] == "File":
+            out = {}
+            if inputs["path"].startswith("gs://"):
+                new_path = os.path.join(os.path.abspath(cache_dir), inputs["path"][5:])
+                if not os.path.exists(os.path.dirname(new_path)):
+                    os.makedirs(os.path.dirname(new_path))
+                if not os.path.exists(new_path):
+                    subprocess.check_call(["gsutil", "cp", inputs["path"], new_path])
+                out = { "class" : "File", "path" : new_path }
+                if 'secondaryFiles' in inputs:
+                    o = []
+                    for i in inputs['secondaryFiles']:
+                        o.append(cache_inputs(i, cache_dir))
+                    out['secondaryFiles'] = o
+            else:
+                out = inputs
+            return out
+        else:
+            out = {}
+            for k, v in inputs.items():
+                out[k] = cache_inputs(v, cache_dir)
+            return out
+    elif isinstance(inputs, list):
+        a = []
+        for i in inputs:
+            a.append(cache_inputs(i, cache_dir))
+        return a
+    return inputs
+
+def get_file_inputs(inputs):
+    if isinstance(inputs, dict):
+        if "class" in inputs and inputs["class"] == "File":
+            yield inputs["path"]
+            if 'secondaryFiles' in inputs:
+                for i in get_file_inputs(inputs['secondaryFiles']):
+                    yield i
+        else:
+            for k, v in inputs.items():
+                for i in get_file_inputs(v):
+                    yield i
+    elif isinstance(inputs, list):
+        for i in inputs:
+            for j in get_file_inputs(i):
+                yield j
+
+def clear_cache(cache_path, skip):
+    if os.path.isdir(cache_path):
+        sub = glob(os.path.join(os.path.abspath(cache_path), "*"))
+        for i in sub:
+            clear_cache(i, skip)
+        sub = glob(os.path.join(os.path.abspath(cache_path), "*")) 
+        if len(sub) == 0:
+            os.rmdir(cache_path)
+    else:
+        if cache_path not in skip:
+            print "Remove", cache_path
+            os.unlink(cache_path)
+        else:
+            print "Keep", cache_path
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("cwl_file")
+    parser.add_argument("job_file")
+    parser.add_argument("out_bucket")
+    parser.add_argument("--cache-dir", default="cache")
+    parser.add_argument("--work-base", default="/tmp")
+    parser.add_argument("--clear-cache", action="store_true", default=False)
+    
+    args = parser.parse_args()
+    
+    with open(args.job_file) as handle:
+   	job = json.loads(handle.read())
+
+    new_job = cache_inputs(job, args.cache_dir)
+    if args.clear_cache:
+        used_files = list(get_file_inputs(new_job))
+        clear_cache(args.cache_dir, used_files)
+        
+    tdir = tempfile.mkdtemp(dir=args.work_base, prefix="cwljob_")
+    input_path = os.path.join(tdir, "input.json")
+    with open(input_path, "w") as handle:
+        handle.write(json.dumps(new_job, indent=4))
+    env = os.environ
+    env['TMPDIR'] = args.work_base
+    with open(os.path.join(tdir, "job.out"), "w") as stdout_handle:
+        subprocess.check_call(["cwltool", os.path.abspath(args.cwl_file), input_path], stdout=stdout_handle, env=env, cwd=tdir)
+
+    subprocess.check_call(["gsutil", "cp", "-r", os.path.join(tdir, "*"), args.out_bucket])
