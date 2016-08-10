@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-import argparser
+import os
+import json
+import argparse
 import subprocess
 from kafka import KafkaProducer
 
@@ -12,7 +14,7 @@ def which(file):
             return p
 
 if __name__ == "__main__":
-    parser = argparser.ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("workflow")
     parser.add_argument("inputs")
     parser.add_argument("output")
@@ -24,7 +26,7 @@ if __name__ == "__main__":
     producer = KafkaProducer(bootstrap_servers=args.server)
 
     with open(args.workflow) as handle:
-        proc = subprocess.call([which('cwltool'), '--pack', args.workflow], stdout=subprocess.PIPE)
+        proc = subprocess.Popen([which('cwltool'), '--pack', args.workflow], stdout=subprocess.PIPE)
         stdout, stderr = proc.communicate()
         workflow = json.loads(stdout)
 
