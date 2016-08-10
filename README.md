@@ -3,9 +3,15 @@ Install
 -------
 ```
 sudo apt-get update
+sudo apt-get install -y docker.io
+sudo usermod -aG docker $USER
+
 sudo apt-get install -y openjdk-8-jre-headless
-sudo apt-get install python-pip
+sudo apt-get install -y python-pip
 sudo pip install kafka-python
+sudo pip install service
+
+git clone https://github.com/kellrott/eval-framework.git
 ```
 
 ```   

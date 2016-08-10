@@ -42,6 +42,7 @@ def run_main(args):
             
         subprocess.call([
             "./cwl-gs-tool",
+            "--clear-cache",
             os.path.join(tdir, "workflow.cwl"),
             os.path.join(tdir, "inputs.json"),
             output])
