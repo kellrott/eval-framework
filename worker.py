@@ -10,6 +10,8 @@ from kafka import KafkaConsumer
 
 from service import Service
 
+BASE_DIR = os.path.dirname(__file__)
+
 class RunnerService(Service):
     def __init__(self, cmd_args, *args, **kwargs):
         super(MyService, self).__init__(*args, **kwargs)
@@ -41,7 +43,7 @@ def run_main(args):
             handle.write(json.dumps(inputs))
             
         subprocess.call([
-            "./cwl-gs-tool",
+            os.path.join(BASE_DIR, "cwl-gs-tool"),
             "--clear-cache",
             os.path.join(tdir, "workflow.cwl#main"),
             os.path.join(tdir, "inputs.json"),
