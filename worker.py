@@ -25,7 +25,7 @@ def run_main(args):
         os.mkdir(args.workdir)
     consumer = KafkaConsumer('cwl-jobs', 
         bootstrap_servers=args.server,
-                             auto_offset_reset="earliest",
+        auto_offset_reset="earliest",
         consumer_timeout_ms=3000,
         group_id=args.group)
     for msg in consumer:
