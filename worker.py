@@ -28,28 +28,32 @@ def run_main(args):
         auto_offset_reset="earliest",
         consumer_timeout_ms=3000,
         group_id=args.group)
-    for msg in consumer:
-        print msg
-        data = json.loads(msg.value)
-        workflow = data['workflow']
-        inputs = data['inputs']
-        output = data['output']
-        
-        tdir = tempfile.mkdtemp(dir=args.workdir, prefix="cwl_workqueue")
-        with open(os.path.join(tdir, "workflow.cwl"), "w") as handle:
-            handle.write(json.dumps(workflow))
-        
-        with open(os.path.join(tdir, "inputs.json"), "w") as handle:
-            handle.write(json.dumps(inputs))
+    try:
+        while True:
+            msg = next(consumer)
+            print msg
+            data = json.loads(msg.value)
+            workflow = data['workflow']
+            inputs = data['inputs']
+            output = data['output']
+
+            tdir = tempfile.mkdtemp(dir=args.workdir, prefix="cwl_workqueue")
+            with open(os.path.join(tdir, "workflow.cwl"), "w") as handle:
+                handle.write(json.dumps(workflow))
+
+            with open(os.path.join(tdir, "inputs.json"), "w") as handle:
+                handle.write(json.dumps(inputs))
+
+            subprocess.call([
+                os.path.join(BASE_DIR, "cwl-gs-tool"),
+                "--clear-cache",
+                os.path.join(tdir, "workflow.cwl#main"),
+                os.path.join(tdir, "inputs.json"),
+                output])
             
-        subprocess.call([
-            os.path.join(BASE_DIR, "cwl-gs-tool"),
-            "--clear-cache",
-            os.path.join(tdir, "workflow.cwl#main"),
-            os.path.join(tdir, "inputs.json"),
-            output])
-        
-        shutil.rmtree(tdir)
+            shutil.rmtree(tdir)
+    except StopIteration:
+        pass
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
