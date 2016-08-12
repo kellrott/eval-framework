@@ -4,8 +4,7 @@ import os
 import json
 import argparse
 import subprocess
-from kafka import KafkaProducer
-
+import pika
 
 def which(file):
     for path in os.environ["PATH"].split(":"):
@@ -23,8 +22,10 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    producer = KafkaProducer(bootstrap_servers=args.server)
-
+    connection = pika.BlockingConnection(pika.URLParameters(args.server))
+    channel = connection.channel()
+    channel.queue_declare(queue="cwl-jobs")
+    
     with open(args.workflow) as handle:
         proc = subprocess.Popen([which('cwltool'), '--pack', args.workflow], stdout=subprocess.PIPE)
         stdout, stderr = proc.communicate()
@@ -38,7 +39,9 @@ if __name__ == "__main__":
                 "workflow" : workflow,
                 "inputs" : inputs,
                 "output" : output
-            }            
-            producer.send('cwl-jobs', json.dumps(data))
-
+            }
+            channel.basic_publish(
+                exchange='',
+                routing_key='cwl-jobs',
+                body=json.dumps(data))
 
