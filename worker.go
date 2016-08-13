@@ -83,6 +83,8 @@ func main() {
       ioutil.WriteFile( inputs_path, inputs_json, 0600 )
       
       cmd := exec.Command(TOOL_RUNNER, "--clear-cache", workflow_path, inputs_path, output)
+      cmd.Stdout = os.Stdout
+      cmd.Stderr = os.Stderr
       cmd.Run()
       os.RemoveAll(tdir)
 
