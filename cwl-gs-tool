@@ -94,7 +94,7 @@ if __name__ == "__main__":
     with open(input_path, "w") as handle:
         handle.write(json.dumps(new_job, indent=4))
     env = os.environ
-    env['TMPDIR'] = args.work_base
+    env['TMPDIR'] = os.path.abspath(args.work_base)
     with open(os.path.join(tdir, "job.out"), "w") as stdout_handle:
         subprocess.check_call(["cwltool", os.path.abspath(args.cwl_file) + "#main", input_path], stdout=stdout_handle, env=env, cwd=tdir)
 

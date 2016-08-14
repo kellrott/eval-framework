@@ -19,8 +19,15 @@ if __name__ == "__main__":
     parser.add_argument("output")
     parser.add_argument("--id-field", default="id")
     parser.add_argument("--server", default='localhost:9092')
+    parser.add_argument("--skip", default=None)
     
     args = parser.parse_args()
+
+    skip_list = []
+    if args.skip is not None:
+        with open(args.skip) as handle:
+            for line in handle:
+                skip_list.append(line.strip())
 
     connection = pika.BlockingConnection(pika.URLParameters(args.server))
     channel = connection.channel()
@@ -34,14 +41,15 @@ if __name__ == "__main__":
     with open(args.inputs) as handle:
         for line in handle:
             inputs = json.loads(line)
-            output = os.path.join( args.output, inputs[args.id_field] )
-            data = {
-                "workflow" : workflow,
-                "inputs" : inputs,
-                "output" : output
-            }
-            channel.basic_publish(
-                exchange='',
-                routing_key='cwl-jobs',
-                body=json.dumps(data))
+            if inputs[args.id_file] not in skip_list:
+                output = os.path.join( args.output, inputs[args.id_field] )
+                data = {
+                    "workflow" : workflow,
+                    "inputs" : inputs,
+                    "output" : output
+                }
+                channel.basic_publish(
+                    exchange='',
+                    routing_key='cwl-jobs',
+                    body=json.dumps(data))
 
