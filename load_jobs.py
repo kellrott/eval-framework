@@ -41,7 +41,7 @@ if __name__ == "__main__":
     with open(args.inputs) as handle:
         for line in handle:
             inputs = json.loads(line)
-            if inputs[args.id_file] not in skip_list:
+            if inputs[args.id_field] not in skip_list:
                 print "loading", args.id_field
                 output = os.path.join( args.output, inputs[args.id_field] )
                 data = {
