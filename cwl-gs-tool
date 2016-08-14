@@ -96,6 +96,6 @@ if __name__ == "__main__":
     env = os.environ
     env['TMPDIR'] = args.work_base
     with open(os.path.join(tdir, "job.out"), "w") as stdout_handle:
-        subprocess.check_call(["cwltool", os.path.abspath(args.cwl_file), input_path], stdout=stdout_handle, env=env, cwd=tdir)
+        subprocess.check_call(["cwltool", os.path.abspath(args.cwl_file) + "#main", input_path], stdout=stdout_handle, env=env, cwd=tdir)
 
     subprocess.check_call(["gsutil", "cp", "-r", os.path.join(tdir, "*"), args.out_bucket])
