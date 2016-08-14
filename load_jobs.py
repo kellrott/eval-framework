@@ -42,6 +42,7 @@ if __name__ == "__main__":
         for line in handle:
             inputs = json.loads(line)
             if inputs[args.id_file] not in skip_list:
+                print "loading", args.id_field
                 output = os.path.join( args.output, inputs[args.id_field] )
                 data = {
                     "workflow" : workflow,
@@ -52,4 +53,6 @@ if __name__ == "__main__":
                     exchange='',
                     routing_key='cwl-jobs',
                     body=json.dumps(data))
+            else:
+                print "skipping", args.id_field
 
