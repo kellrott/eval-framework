@@ -47,7 +47,7 @@ if __name__ == "__main__":
                 data = {
                     "workflow_url" : args.workflow,
                     "inputs" : inputs,
-                    "outputs" : outputs
+                    "outputs" : output
                 }
             channel.basic_publish(
                 exchange='',
