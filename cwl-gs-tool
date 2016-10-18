@@ -75,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("cwl_file")
     parser.add_argument("job_file")
     parser.add_argument("out_bucket")
+    parser.add_argument("--gs-workflow", default=False, action="store_true")
     parser.add_argument("--cache-dir", default="cache")
     parser.add_argument("--work-base", default="/tmp")
     parser.add_argument("--clear-cache", action="store_true", default=False)
@@ -93,9 +94,17 @@ if __name__ == "__main__":
     input_path = os.path.join(tdir, "input.json")
     with open(input_path, "w") as handle:
         handle.write(json.dumps(new_job, indent=4))
+
+    if args.gs_workflow:
+        subprocess.check_call(["gsutil", "cp", "-r", os.path.dirname(args.cwl_file),
+                               args.work_base])
+        cwl_file = os.path.join( args.work_base, os.path.basename(os.path.dirname(args.cwl_file)), os.path.basename(args.cwl_file) )
+    else:
+        cwl_file = args.cwl_file
+    
     env = os.environ
     env['TMPDIR'] = args.work_base
     with open(os.path.join(tdir, "job.out"), "w") as stdout_handle:
-        subprocess.check_call(["cwltool", os.path.abspath(args.cwl_file) + "#main", input_path], stdout=stdout_handle, env=env, cwd=tdir)
+        subprocess.check_call(["cwltool", os.path.abspath(cwl_file), input_path], stdout=stdout_handle, env=env, cwd=tdir)
 
     subprocess.check_call(["gsutil", "cp", "-r", os.path.join(tdir, "*"), args.out_bucket])
